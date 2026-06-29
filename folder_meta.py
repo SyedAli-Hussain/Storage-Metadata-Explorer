@@ -208,8 +208,7 @@ def write_xlsx(path: str, folders: list[dict], files: list[dict]):
       'Files' - flat list of every file, fully summable for pivots.
     Sheets that exceed Excel's row limit overflow into '<name> (2)', '(3)', ...
     """
-    # ponytail: openpyxl normal mode holds all cells in memory; fine into low millions of rows.
-    # If a share is huge enough to OOM, switch the Files sheet to write_only mode.
+
     from openpyxl import Workbook
     from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE  # control chars Excel/XML reject
     from openpyxl.styles import Alignment, Font, PatternFill
@@ -377,7 +376,6 @@ def write_growth_xlsx(path: str, folders: list[dict], files: list[dict]):
         if sh.max_row >= 4:
             bar(sh, "C", 4, sh.max_row)
 
-    # ---- Template: you type patients & procedures; Excel formulas + chart do the rest ----
     tpl = wb.create_sheet("Template")
     tpl.sheet_view.showGridLines = False
     input_fill = PatternFill("solid", fgColor="FFF2CC")  # yellow = type your number here
