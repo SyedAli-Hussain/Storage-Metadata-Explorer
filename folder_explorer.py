@@ -9,7 +9,7 @@ import tkinter as tk
 from concurrent.futures import ThreadPoolExecutor
 from tkinter import filedialog, messagebox, ttk
 
-from folder_meta import _created, _dt, human_size, scan_parallel, write_xlsx
+from folder_meta import _created, _dt, human_size, scan_parallel, write_growth_xlsx, write_xlsx
 
 COLS = ("size", "items", "type", "created", "modified")
 
@@ -48,7 +48,8 @@ class Explorer:
         ttk.Button(bar, text="Open", command=self.open_path).pack(side="left", padx=3)
         ttk.Button(bar, text="Add", command=self.add_folder).pack(side="left")
         ttk.Button(bar, text="Browse…", command=self.browse).pack(side="left", padx=3)
-        ttk.Button(bar, text="Export Excel", command=self.export).pack(side="left", padx=3)
+        ttk.Button(bar, text="Export Summary", command=lambda: self.export(summary=True)).pack(side="left", padx=3)
+        ttk.Button(bar, text="Export Detail", command=lambda: self.export(summary=False)).pack(side="left")
 
         fbar = ttk.Frame(self.win)
         fbar.pack(fill="x", padx=6, pady=(0, 6))
@@ -244,13 +245,14 @@ class Explorer:
             self.path_var.set(d)
             self.open_path()
 
-    def export(self):
+    def export(self, summary=True):
         roots = [self.paths[r] for r in self.children_order.get("", [])]
         if not roots:
             self.status.config(text="Nothing loaded to export.")
             return
+        default = "storage_summary.xlsx" if summary else "folder_metadata.xlsx"
         path = filedialog.asksaveasfilename(
-            title="Export to Excel", initialfile="folder_metadata.xlsx",
+            title="Export to Excel", initialfile=default,
             defaultextension=".xlsx", filetypes=[("Excel workbook", "*.xlsx")])
         if not path:
             return
@@ -273,20 +275,24 @@ class Explorer:
                 report(f"Writing workbook ({len(folders)} folders, {len(files)} files) ...")
                 folders.sort(key=lambda x: x.get("folder", "").lower())
                 files.sort(key=lambda x: x.get("path", "").lower())
-                write_xlsx(path, folders, files)
-                done = (len(folders), len(files), None)
+                if summary:
+                    write_growth_xlsx(path, folders, files)
+                else:
+                    write_xlsx(path, folders, files)
+                done = (len(folders), len(files), summary, None)
             except Exception as e:
-                done = (0, 0, f"{type(e).__name__}: {e}")
+                done = (0, 0, summary, f"{type(e).__name__}: {e}")
             self.win.after(0, lambda: self._export_done(path, *done))
 
         threading.Thread(target=work, daemon=True).start()
 
-    def _export_done(self, path, n_folders, n_files, error):
+    def _export_done(self, path, n_folders, n_files, summary, error):
         if error:
             self.status.config(text=f"Export failed: {error}")
-            messagebox.showerror("Export failed", error)  
+            messagebox.showerror("Export failed", error)
         else:
-            msg = f"Exported {n_folders} folders and {n_files} files to:\n{path}\n(Folders + Files sheets)"
+            kind = "executive summary" if summary else "full detail (Tree + Files)"
+            msg = f"Exported {kind} from {n_folders} folders / {n_files} files to:\n{path}"
             self.status.config(text=msg.replace(chr(10), "  "))
             messagebox.showinfo("Export complete", msg)
 
