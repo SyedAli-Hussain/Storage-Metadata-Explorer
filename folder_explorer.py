@@ -166,7 +166,7 @@ class Explorer:
             self.tree.set(iid, "size", human_size(size))
             self.tree.set(iid, "items", str(count))
         if iid in self.meta:
-            self.meta[iid]["_size"] = size       # no auto re-sort; click header to re-sort by size
+            self.meta[iid]["_size"] = size       # click header to re-sort by size
             self.meta[iid]["_items"] = count
 
     # ---- sort and filter ---------------------------------------------------
